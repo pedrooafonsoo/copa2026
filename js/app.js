@@ -390,7 +390,7 @@ function renderHoje() {
 function fraseDoDia() {
   const hoje = hojeISO();
   const jogoBR = DADOS.jogos.find(j => j.brasil && j.data === hoje);
-  if (jogoBR) return `Hoje tem <b>Brasil</b> em campo — já separa a camisa!`;
+  if (jogoBR) return `Hoje tem <b>Brasil</b> em campo! Já separa a camisa, a bandeira e talvez um hambúrguer 👀`;
   const n = DADOS.jogos.filter(j => j.data === hoje).length;
   if (n > 0) return `Hoje a Copa tem ${n === 1 ? 'um jogo' : n + ' jogos'} pra gente acompanhar.`;
   return `Dia sem jogos — bom pra revisar a tabela e planejar a semana da Copa.`;
