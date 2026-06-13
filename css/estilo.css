@@ -283,6 +283,9 @@ main { padding: 12px 16px 24px; max-width: 640px; margin: 0 auto; }
 .tick-fora .tick-min { text-align: left; }
 .tick-nome { flex: 1; }
 
+/* ---------- bandeiras (imagem CDN) ---------- */
+.flag-img { width: 20px; height: 14px; vertical-align: middle; border-radius: 2px; object-fit: cover; display: inline-block; }
+
 /* ---------- detalhes de jogo (acordeão) ---------- */
 .jogo-bloco { cursor: pointer; }
 .jogo-bloco .jogo { transition: background .15s; }
