@@ -21,6 +21,22 @@ const cofre = {
 
 const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 
+/* ---------- bandeiras ---------- */
+const BANDEIRA = {
+  'Brasil':'\ud83c\udde7\ud83c\uddf7','M\u00e9xico':'\ud83c\uddf2\ud83c\uddfd','\u00c1frica do Sul':'\ud83c\uddff\ud83c\udde6','Coreia do Sul':'\ud83c\uddf0\ud83c\uddf7',
+  'Rep\u00fablica Tcheca':'\ud83c\udde8\ud83c\uddff','Canad\u00e1':'\ud83c\udde8\ud83c\udde6','B\u00f3snia e Herzegovina':'\ud83c\udde7\ud83c\udde6','Catar':'\ud83c\uddf6\ud83c\udde6',
+  'Su\u00ed\u00e7a':'\ud83c\udde8\ud83c\udded','Haiti':'\ud83c\udded\ud83c\uddf9','Esc\u00f3cia':'\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc73\udb40\udc63\udb40\udc74\udb40\udc7f','Estados Unidos':'\ud83c\uddfa\ud83c\uddf8','Paraguai':'\ud83c\uddf5\ud83c\uddfe',
+  'Austr\u00e1lia':'\ud83c\udde6\ud83c\uddfa','Turquia':'\ud83c\uddf9\ud83c\uddf7','Alemanha':'\ud83c\udde9\ud83c\uddea','Cura\u00e7ao':'\ud83c\udde8\ud83c\uddfc',
+  'Costa do Marfim':'\ud83c\udde8\ud83c\uddee','Equador':'\ud83c\uddea\ud83c\udde8','Holanda':'\ud83c\uddf3\ud83c\uddf1','Jap\u00e3o':'\ud83c\uddef\ud83c\uddf5',
+  'Su\u00e9cia':'\ud83c\uddf8\ud83c\uddea','Tun\u00edsia':'\ud83c\uddf9\ud83c\uddf3','B\u00e9lgica':'\ud83c\udde7\ud83c\uddea','Egito':'\ud83c\uddea\ud83c\uddec','Ir\u00e3':'\ud83c\uddee\ud83c\uddf7',
+  'Nova Zel\u00e2ndia':'\ud83c\uddf3\ud83c\uddff','Espanha':'\ud83c\uddea\ud83c\uddf8','Cabo Verde':'\ud83c\udde8\ud83c\uddfb','Ar\u00e1bia Saudita':'\ud83c\uddf8\ud83c\udde6',
+  'Uruguai':'\ud83c\uddfa\ud83c\uddfe','Fran\u00e7a':'\ud83c\uddeb\ud83c\uddf7','Senegal':'\ud83c\uddf8\ud83c\uddf3','Iraque':'\ud83c\uddee\ud83c\uddf6','Noruega':'\ud83c\uddf3\ud83c\uddf4',
+  'Argentina':'\ud83c\udde6\ud83c\uddf7','Arg\u00e9lia':'\ud83c\udde9\ud83c\uddff','\u00c1ustria':'\ud83c\udde6\ud83c\uddf9','Jord\u00e2nia':'\ud83c\uddef\ud83c\uddf4','Portugal':'\ud83c\uddf5\ud83c\uddf9',
+  'RD Congo':'\ud83c\udde8\ud83c\udde9','Uzbequist\u00e3o':'\ud83c\uddfa\ud83c\uddff','Col\u00f4mbia':'\ud83c\udde8\ud83c\uddf4','Inglaterra':'\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f',
+  'Cro\u00e1cia':'\ud83c\udded\ud83c\uddf7','Panam\u00e1':'\ud83c\uddf5\ud83c\udde6','Gana':'\ud83c\uddec\ud83c\udded','Marrocos':'\ud83c\uddf2\ud83c\udde6',
+};
+const bandeira = (nome) => BANDEIRA[nome] ? BANDEIRA[nome] + ' ' : '';
+
 const FUSO_BRT = -3 * 60; // minutos
 function agoraBRT() {
   const d = new Date();
@@ -121,8 +137,13 @@ function classificacao(letra) {
 async function buscarPlacar() {
   const hoje = hojeISO();
   const amanha = dataBRT(new Date(Date.now() + 864e5));
+  // Na primeira carga, busca também os 4 dias anteriores para exibir resultados recentes
+  const datas = [hoje, amanha];
+  if (apiDisponivel === null) {
+    for (let i = 1; i <= 4; i++) datas.unshift(dataBRT(new Date(Date.now() - i * 864e5)));
+  }
   try {
-    const respostas = await Promise.all([hoje, amanha].map(d =>
+    const respostas = await Promise.all(datas.map(d =>
       fetch(`/api/placar?data=${d.replace(/-/g, '')}`).then(r => r.json())));
     const eventos = respostas.flatMap(r => (r && r.jogos) || []);
     if (!respostas.some(r => r && r.ok)) throw new Error('sem dados');
@@ -191,8 +212,8 @@ function linhaJogo(j, opcoes = {}) {
           : encerrado ? `<span class="vivo" style="color:var(--giz-suave)">fim</span>` : ''}
       </div>
       <div class="jogo-times">
-        <div class="jogo-linha"><span class="${g(p1, p2)}">${j.t1}</span><span class="gols">${p1 ?? ''}</span></div>
-        <div class="jogo-linha"><span class="${g(p2, p1)}">${j.t2}</span><span class="gols">${p2 ?? ''}</span></div>
+        <div class="jogo-linha"><span class="${g(p1, p2)}">${bandeira(j.t1)}${j.t1}</span><span class="gols">${p1 ?? ''}</span></div>
+        <div class="jogo-linha"><span class="${g(p2, p1)}">${bandeira(j.t2)}${j.t2}</span><span class="gols">${p2 ?? ''}</span></div>
         ${opcoes.semLocal ? '' : `<div class="jogo-local">${numero}${j.cidade} · ${j.estadio}</div>`}
       </div>
       <div class="jogo-fase">${fase}${clicavel ? '<span class="btn-detalhe">▾</span>' : ''}</div>
@@ -502,10 +523,13 @@ function renderDetalhe(d, t1, t2, el) {
     <tr><td class="st-val">${v1 ?? '—'}</td><td class="st-label">${label}</td><td class="st-val">${v2 ?? '—'}</td></tr>` : '';
   const s1 = d.statsCasa || {}, s2 = d.statsFora || {};
   const temStats = Object.keys(s1).length + Object.keys(s2).length > 0;
+  const jogador = ev => `<div class="esc-jog"><span class="esc-num">${ev.numero}</span><span class="esc-pos">${ev.posicao}</span><span>${ev.nome}</span></div>`;
+  const temEsc = d.escCasa?.length > 0 || d.escFora?.length > 0;
+
   el.innerHTML = `
     <div class="detalhe-corpo">
       ${d.eventos?.length ? `
-        <div class="ev-cabecalho"><span>${t1}</span><span>${t2}</span></div>
+        <div class="ev-cabecalho"><span>${bandeira(t1)}${t1}</span><span>${bandeira(t2)}${t2}</span></div>
         ${d.eventos.map(linhaEv).join('')}
       ` : `<p class="nota detalhe-vazio">Nenhum evento registrado.</p>`}
       ${temStats ? `<table class="tabela-stats">
@@ -516,6 +540,20 @@ function renderDetalhe(d, t1, t2, el) {
         ${statRow('Cartões amarelos', s1.yellowCards, s2.yellowCards)}
         ${statRow('Cartões vermelhos', s1.redCards, s2.redCards)}
       </table>` : ''}
+      ${temEsc ? `
+        <div class="escalacao">
+          <div class="esc-cabecalho">Escalação inicial</div>
+          <div class="esc-colunas">
+            <div class="esc-col">
+              <div class="esc-time-nome">${bandeira(t1)}${t1}</div>
+              ${(d.escCasa || []).map(jogador).join('')}
+            </div>
+            <div class="esc-col">
+              <div class="esc-time-nome">${bandeira(t2)}${t2}</div>
+              ${(d.escFora || []).map(jogador).join('')}
+            </div>
+          </div>
+        </div>` : ''}
     </div>`;
 }
 
