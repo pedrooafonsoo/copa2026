@@ -73,6 +73,21 @@ const FASES = {
   final:    'A Grande Final',
 };
 
+/* ---------- posições em PT-BR ---------- */
+const POS_PT = {
+  'GK':'GOL','G':'GOL',
+  'CB':'ZAG','SW':'ZAG','CD-L':'ZAG-E','CD-R':'ZAG-D',
+  'LB':'LE','RB':'LD','LWB':'ALE','RWB':'ALD',
+  'CDM':'VOL','DM':'VOL',
+  'CM':'MEI',
+  'CAM':'MEA','AM':'MEA','AM-L':'MEA-E','AM-R':'MEA-D',
+  'LM':'ME-E','RM':'ME-D',
+  'LW':'PE','RW':'PD',
+  'CF':'SA','SS':'SA',
+  'ST':'ATA','FW':'ATA','F':'ATA',
+};
+const traduzPos = (p) => POS_PT[p] || p;
+
 /* ---------- tradução de nomes vindos da API (inglês -> pt-BR) ---------- */
 const TRADUCAO = {
   'mexico':'México','south africa':'África do Sul','south korea':'Coreia do Sul',
@@ -166,10 +181,11 @@ async function buscarPlacar() {
       }
     }
     cofre.gravar('copa.resultados', resultados);
-    // Busca eventos dos jogos ao vivo para o ticker (limpa cache para ter dados frescos)
+    // Busca eventos ao vivo (ticker) + Brasil encerrado (broadcast)
     const vivosComId = aoVivoHoje.filter(j => j.estado === 'in' && j.espnId);
     vivosComId.forEach(j => delete detalheCache[j.espnId]);
-    await Promise.all(vivosComId.map(j => buscarDetalhe(j.espnId)));
+    const brPost = aoVivoHoje.filter(j => /brasil/.test(norm(j.t1 + j.t2)) && j.espnId && j.estado === 'post' && !detalheCache[j.espnId]);
+    await Promise.all([...vivosComId, ...brPost].map(j => buscarDetalhe(j.espnId)));
   } catch {
     if (apiDisponivel === null) apiDisponivel = false;
   }
@@ -222,22 +238,22 @@ function linhaJogo(j, opcoes = {}) {
       <div class="jogo-fase">${fase}${clicavel ? '<span class="btn-detalhe">▾</span>' : ''}</div>
     </div>`;
 
-  // Ticker inline para jogos ao vivo (visível sem clicar, atualiza a cada minuto)
+  // Ticker inline atualizado para incluir substituições
+  const renderTickEv = (ev) => {
+    const icoCls = (ev.tipo === 'gol' || ev.tipo === 'pen' || ev.tipo === 'contra') ? 'ev-gol'
+      : ev.tipo === 'amarelo' ? 'ev-amarelo' : ev.tipo === 'vermelho' ? 'ev-vermelho' : 'ev-sub-ico';
+    const subLabel = ev.tipo === 'pen' ? ' <span class="ev-sub">pên.</span>'
+      : ev.tipo === 'contra' ? ' <span class="ev-sub">c.g.</span>'
+      : ev.tipo === 'sub' ? ` <span class="ev-sub">↑ ${ev.jogadorSub || '?'}</span>` : '';
+    return `<div class="tick-ev ${ev.eCasa ? 'tick-casa' : 'tick-fora'}">
+      <span class="tick-min">${ev.minuto}</span>
+      <span class="ev-ico ${icoCls}"></span>
+      <span class="tick-nome">${ev.jogador}${subLabel}</span>
+    </div>`;
+  };
+
   const evVivos = emAndamento && espnId ? detalheCache[espnId]?.eventos : null;
-  const ticker = evVivos?.length ? `
-    <div class="jogo-ticker">
-      ${evVivos.map(ev => {
-        const icoCls = (ev.tipo === 'gol' || ev.tipo === 'pen' || ev.tipo === 'contra') ? 'ev-gol'
-          : ev.tipo === 'amarelo' ? 'ev-amarelo' : 'ev-vermelho';
-        const sub = ev.tipo === 'pen' ? ' <span class="ev-sub">pên.</span>'
-          : ev.tipo === 'contra' ? ' <span class="ev-sub">c.g.</span>' : '';
-        return `<div class="tick-ev ${ev.eCasa ? 'tick-casa' : 'tick-fora'}">
-          <span class="tick-min">${ev.minuto}</span>
-          <span class="ev-ico ${icoCls}"></span>
-          <span class="tick-nome">${ev.jogador}${sub}</span>
-        </div>`;
-      }).join('')}
-    </div>` : '';
+  const ticker = evVivos?.length ? `<div class="jogo-ticker">${evVivos.map(renderTickEv).join('')}</div>` : '';
 
   if (!clicavel) return inner + ticker;
   return `<div class="jogo-bloco" data-espn="${espnId}" data-t1="${j.t1}" data-t2="${j.t2}">${inner}${ticker}<div class="jogo-detalhe" hidden></div></div>`;
@@ -248,6 +264,51 @@ function cartao(titulo, conteudo, extra = '') {
     ${titulo ? `<div class="cartao-cabecalho"><span>${titulo}</span>${extra}</div>` : ''}
     ${conteudo}
   </div>`;
+}
+
+/* ---------- Broadcast ao vivo do Brasil ---------- */
+function broadcastBrasil() {
+  const jogoBR = aoVivoHoje.find(j =>
+    /brasil/.test(norm(j.t1 + j.t2)) && j.espnId && (j.estado === 'in' || j.estado === 'post'));
+  if (!jogoBR) return '';
+  const det = detalheCache[jogoBR.espnId];
+  const emAndamento = jogoBR.estado === 'in';
+  const statusLabel = emAndamento
+    ? (jogoBR.detalhe?.toLowerCase() === 'ht' ? '⏸ INTERVALO' : `▶ AO VIVO · ${jogoBR.detalhe || ''}`)
+    : '✓ ENCERRADO';
+  const p1 = jogoBR.p1 ?? '-', p2 = jogoBR.p2 ?? '-';
+  const eventos = det?.ok && det.eventos?.length ? det.eventos : [];
+  const isCasaBR = /brasil/.test(norm(jogoBR.t1));
+
+  const ICO_BC = { gol:'⚽', pen:'⚽', contra:'⚽', amarelo:'🟨', vermelho:'🟥', sub:'🔄' };
+  const evHTML = eventos.slice().reverse().map(ev => {
+    const ehBrasil = isCasaBR ? ev.eCasa : !ev.eCasa;
+    const ico = ICO_BC[ev.tipo] || '';
+    const sub = ev.tipo === 'pen' ? ' <em>(pên.)</em>' : ev.tipo === 'contra' ? ' <em>(c.g.)</em>' : '';
+    const desc = ev.tipo === 'sub'
+      ? `${ev.jogador || '—'} <span class="bc-sai">saiu</span> · <span class="bc-entra">↑ ${ev.jogadorSub || '?'}</span>`
+      : `${ev.jogador || '—'}${sub}`;
+    return `<div class="bc-ev ${ehBrasil ? 'bc-ev-brasil' : ''}">
+      <span class="bc-ev-min">${ev.minuto}</span>
+      <span class="bc-ev-ico">${ico}</span>
+      <span class="bc-ev-desc">${desc}</span>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="broadcast">
+      <div class="bc-header">
+        <span class="bc-status ${emAndamento ? 'bc-vivo' : 'bc-fim'}">${statusLabel}</span>
+        <span class="bc-atualiza">atualiza a cada 30s</span>
+      </div>
+      <div class="bc-placar">
+        <div class="bc-side">${bandeira(jogoBR.t1)}<span>${jogoBR.t1}</span></div>
+        <div class="bc-score"><span>${p1}</span><span class="bc-sep">×</span><span>${p2}</span></div>
+        <div class="bc-side bc-side-right"><span>${jogoBR.t2}</span>${bandeira(jogoBR.t2)}</div>
+      </div>
+      ${evHTML ? `<div class="bc-eventos">${evHTML}</div>`
+               : `<p class="bc-sem-ev">${emAndamento ? 'Aguardando eventos…' : 'Sem eventos registrados.'}</p>`}
+    </div>`;
 }
 
 /* ---------- TELA: HOJE ---------- */
@@ -300,6 +361,7 @@ function renderHoje() {
 
   tela.innerHTML = `
     <p class="saudacao">${periodo}, <b>Milena</b>! ${fraseDoDia()}</p>
+    ${broadcastBrasil()}
     ${ingresso}
     ${jogosHoje.length ? `
       <div class="secao-titulo">Jogos de hoje <small>${dataLonga(hoje)}</small></div>
@@ -515,18 +577,23 @@ function renderDetalhe(d, t1, t2, el) {
     contra:   `<span class="ev-ico ev-gol"></span><span class="ev-sub">c.g.</span>`,
     amarelo:  `<span class="ev-ico ev-amarelo"></span>`,
     vermelho: `<span class="ev-ico ev-vermelho"></span>`,
+    sub:      `<span class="ev-ico ev-sub-ico">↔</span>`,
   };
   const linhaEv = ev => `
     <div class="ev-linha ${ev.eCasa ? 'ev-casa' : 'ev-fora'}">
       <span class="ev-min">${ev.minuto}</span>
       <span class="ev-tipo">${ICO[ev.tipo] || ''}</span>
-      <span class="ev-nome">${ev.jogador || '—'}</span>
+      <span class="ev-nome">${ev.tipo === 'sub'
+        ? `${ev.jogador || '—'} <span class="ev-sub-entra">↑ ${ev.jogadorSub || '?'}</span>`
+        : (ev.jogador || '—')}</span>
     </div>`;
   const statRow = (label, v1, v2) => (v1 || v2) ? `
     <tr><td class="st-val">${v1 ?? '—'}</td><td class="st-label">${label}</td><td class="st-val">${v2 ?? '—'}</td></tr>` : '';
   const s1 = d.statsCasa || {}, s2 = d.statsFora || {};
   const temStats = Object.keys(s1).length + Object.keys(s2).length > 0;
-  const jogador = ev => `<div class="esc-jog"><span class="esc-num">${ev.numero}</span><span class="esc-pos">${ev.posicao}</span><span>${ev.nome}</span></div>`;
+  const jogador = ev => `<div class="esc-jog ${ev.athleteId ? 'esc-clicavel' : ''}" data-aid="${ev.athleteId || ''}" data-nome="${ev.nome}">
+    <span class="esc-num">${ev.numero}</span><span class="esc-pos">${traduzPos(ev.posicao)}</span><span class="esc-nome">${ev.nome}</span>
+  </div>`;
   const temEsc = d.escCasa?.length > 0 || d.escFora?.length > 0;
 
   el.innerHTML = `
@@ -562,7 +629,11 @@ function renderDetalhe(d, t1, t2, el) {
 
 function iniciarDetalhes(tela) {
   $$('.jogo-bloco', tela).forEach(bloco => {
-    bloco.addEventListener('click', async () => {
+    bloco.addEventListener('click', async (e) => {
+      // Clique em jogador: abre perfil
+      const jog = e.target.closest('.esc-clicavel');
+      if (jog) { e.stopPropagation(); abrirPerfil(jog.dataset.aid, jog.dataset.nome); return; }
+
       const painel = $('.jogo-detalhe', bloco);
       const seta = $('.btn-detalhe', bloco);
       if (!painel) return;
@@ -574,10 +645,61 @@ function iniciarDetalhes(tela) {
         const dados = await buscarDetalhe(bloco.dataset.espn);
         renderDetalhe(dados, bloco.dataset.t1, bloco.dataset.t2, painel);
         painel.dataset.loaded = '1';
+        // Ativa clique nos jogadores do painel recém carregado
+        $$('.esc-clicavel', painel).forEach(j => j.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          abrirPerfil(j.dataset.aid, j.dataset.nome);
+        }));
       }
     });
   });
 }
+
+/* ---------- perfil do jogador ---------- */
+const perfilCache = {};
+async function abrirPerfil(athleteId, nome) {
+  const overlay = $('#perfilOverlay');
+  const conteudo = $('#perfilConteudo');
+  if (!overlay || !conteudo) return;
+  overlay.hidden = false;
+  conteudo.innerHTML = `<div class="perfil-loading">Carregando ${nome}…</div>`;
+
+  let d = perfilCache[athleteId];
+  if (!d && athleteId) {
+    try {
+      const r = await fetch(`/api/atleta?id=${athleteId}`);
+      d = await r.json();
+      if (d.ok) perfilCache[athleteId] = d;
+    } catch { d = { ok: false }; }
+  }
+
+  if (!d?.ok) {
+    conteudo.innerHTML = `<div class="perfil-loading">${nome}</div><p class="nota" style="padding:12px 16px">Dados não disponíveis para este jogador.</p>`;
+    return;
+  }
+
+  const linha = (label, val) => val ? `<div class="perfil-linha"><span>${label}</span><strong>${val}</strong></div>` : '';
+  conteudo.innerHTML = `
+    ${d.foto ? `<div class="perfil-foto-wrap"><img src="${d.foto}" class="perfil-foto" alt="${d.nome}"></div>` : ''}
+    <div class="perfil-nome">${d.nome}</div>
+    <div class="perfil-info">
+      ${linha('Posição', d.posicao)}
+      ${linha('Clube', d.clube)}
+      ${linha('País', d.pais)}
+      ${linha('Idade', d.idade)}
+      ${linha('Altura', d.altura)}
+      ${linha('Peso', d.peso)}
+      ${linha('Camisa', d.numero ? '#' + d.numero : '')}
+    </div>`;
+}
+
+(function iniciarPerfil() {
+  const overlay = $('#perfilOverlay');
+  const fechar = $('#fecharPerfil');
+  if (!overlay || !fechar) return;
+  fechar.addEventListener('click', () => { overlay.hidden = true; });
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.hidden = true; });
+})();
 
 /* ---------- navegação ---------- */
 const RENDER = { hoje: renderHoje, jogos: renderJogos, brasil: renderBrasil, copa: renderCopa };
@@ -605,7 +727,7 @@ $$('.nav-botao').forEach(b => b.addEventListener('click', () => {
 /* ---------- início ---------- */
 renderTelaAtiva();
 buscarPlacar();
-setInterval(() => { if (!document.hidden) buscarPlacar(); }, 60000);
+setInterval(() => { if (!document.hidden) buscarPlacar(); }, 30000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) buscarPlacar(); });
 
 })();

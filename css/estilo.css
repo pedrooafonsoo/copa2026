@@ -286,6 +286,76 @@ main { padding: 12px 16px 24px; max-width: 640px; margin: 0 auto; }
 /* ---------- bandeiras (imagem CDN) ---------- */
 .flag-img { width: 20px; height: 14px; vertical-align: middle; border-radius: 2px; object-fit: cover; display: inline-block; }
 
+/* ---------- broadcast Brasil ao vivo ---------- */
+.broadcast {
+  background: linear-gradient(160deg, #0f3827 0%, #11402F 100%);
+  border: 1px solid rgba(255, 210, 63, .35);
+  border-radius: var(--raio); margin: 0 0 16px; overflow: hidden;
+}
+.bc-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 14px; border-bottom: 1px solid rgba(255, 210, 63, .12);
+}
+.bc-status { font-family: var(--display); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.bc-vivo { color: var(--amarelo); }
+.bc-fim  { color: var(--giz-suave); }
+.bc-atualiza { font-size: 10px; color: var(--giz-suave); opacity: .7; }
+.bc-placar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; gap: 8px;
+}
+.bc-side { display: flex; align-items: center; gap: 6px; font-family: var(--display); font-size: 14px; font-weight: 600; flex: 1; }
+.bc-side-right { justify-content: flex-end; }
+.bc-score { display: flex; align-items: center; gap: 8px; font-family: var(--display); font-size: 34px; font-weight: 700; color: var(--amarelo); }
+.bc-sep { color: var(--giz-suave); font-size: 20px; }
+.bc-eventos { border-top: 1px solid rgba(237, 247, 240, .07); padding: 4px 0; }
+.bc-ev {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 14px; font-size: 13px;
+}
+.bc-ev-brasil { background: rgba(255, 210, 63, .07); }
+.bc-ev-min { color: var(--giz-suave); font-size: 11px; min-width: 30px; font-family: var(--display); }
+.bc-ev-ico { font-size: 13px; }
+.bc-ev-desc { flex: 1; }
+.bc-sai  { color: var(--giz-suave); font-size: 11px; }
+.bc-entra { color: #6fd9a4; font-size: 11px; }
+.bc-sem-ev { padding: 10px 14px; font-size: 13px; color: var(--giz-suave); }
+
+/* ---------- substituição (escalação) ---------- */
+.ev-sub-ico { color: #6fd9a4; font-size: 13px; font-weight: 600; }
+.ev-sub-entra { color: #6fd9a4; font-size: 11px; }
+.esc-clicavel { cursor: pointer; }
+.esc-clicavel:hover { background: rgba(255, 210, 63, .08); border-radius: 6px; }
+.esc-clicavel .esc-nome { text-decoration: underline dotted; text-underline-offset: 2px; }
+
+/* ---------- perfil do jogador (drawer) ---------- */
+.perfil-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.perfil-overlay[hidden] { display: none; }
+.perfil-drawer {
+  background: var(--superficie); border-radius: 20px 20px 0 0;
+  width: 100%; max-width: 520px; max-height: 80dvh;
+  overflow-y: auto; padding: 20px 20px 40px; position: relative;
+}
+.perfil-fechar {
+  position: absolute; top: 14px; right: 16px;
+  background: rgba(255,255,255,.1); border: none; color: var(--giz);
+  width: 30px; height: 30px; border-radius: 50%; font-size: 14px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.perfil-foto-wrap { text-align: center; margin-bottom: 12px; }
+.perfil-foto { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid var(--amarelo); }
+.perfil-nome { font-family: var(--display); font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 14px; }
+.perfil-info { display: flex; flex-direction: column; gap: 2px; }
+.perfil-linha {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; border-bottom: 1px solid var(--risco); font-size: 14px;
+}
+.perfil-linha span { color: var(--giz-suave); }
+.perfil-loading { text-align: center; padding: 24px; font-family: var(--display); font-size: 18px; color: var(--giz-suave); }
+
 /* ---------- detalhes de jogo (acordeão) ---------- */
 .jogo-bloco { cursor: pointer; }
 .jogo-bloco .jogo { transition: background .15s; }

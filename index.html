@@ -29,17 +29,25 @@
   <header class="topo">
     <div class="topo-marca">
       <span class="topo-eyebrow">Copa do Mundo FIFA 2026</span>
-      <h1 class="topo-titulo">A Copa da <em>Milena</em></h1>
+      <h1 class="topo-titulo">Bem-vinda, <em>Milena</em> ❤️</h1>
     </div>
     <div class="topo-status" id="statusConexao" hidden>
       <span class="ponto"></span><span id="statusTexto">ao vivo</span>
     </div>
   </header>
 
-  <div class="aviso-instalar" id="avisoInstalar" hidden>
-    <p>Quer me deixar na sua tela de início? No Safari, toque em
-      <strong>Compartilhar</strong> e depois em <strong>“Adicionar à Tela de Início”</strong>.</p>
-    <button id="fecharAviso" aria-label="Fechar aviso">OK!</button>
+  <div class=”aviso-instalar” id=”avisoInstalar” hidden>
+    <p>Me coloca na tua tela inicial do iPhone. No navegador Safari, toca em
+      <strong>Compartilhar</strong> e depois em <strong>”Adicionar à Tela de Início”</strong>.</p>
+    <button id=”fecharAviso” aria-label=”Fechar aviso”>OK!</button>
+  </div>
+
+  <!-- Drawer de perfil do jogador -->
+  <div class=”perfil-overlay” id=”perfilOverlay” hidden>
+    <div class=”perfil-drawer” id=”perfilDrawer”>
+      <button class=”perfil-fechar” id=”fecharPerfil” aria-label=”Fechar”>✕</button>
+      <div class=”perfil-conteudo” id=”perfilConteudo”></div>
+    </div>
   </div>
 
   <main id="conteudo">

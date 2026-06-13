@@ -1,4 +1,4 @@
-// /api/detalhe — eventos (gols, cartões), estatísticas e escalação via ESPN.
+// /api/detalhe — eventos (gols, cartões, substituições), estatísticas e escalação via ESPN.
 // Uso: /api/detalhe?id=ID_ESPN  (o ID chega via /api/placar)
 
 export default async function handler(req, res) {
@@ -17,6 +17,7 @@ export default async function handler(req, res) {
 
     const tipoEvento = (text) => {
       const t = (text || '').toLowerCase();
+      if (t.includes('substitut') || t === 'sub') return 'sub';
       if (t.includes('penalty') || t.includes('pen.')) return 'pen';
       if (t.includes('own goal') || t.includes('own-goal')) return 'contra';
       if (t.includes('goal') || t.includes('score') || t === 'gol') return 'gol';
@@ -26,47 +27,53 @@ export default async function handler(req, res) {
       return null;
     };
 
-    // Fonte 1: details no header (gols + cartões)
+    // Fonte 1: details no header (gols + cartões + substituições)
     const detailEvents = (comp.details || [])
-      .map(d => ({
-        tipo: tipoEvento(d.type?.text || d.type?.name || String(d.type || '')),
-        minuto: d.clock?.displayValue || '',
-        jogador: (d.athletesInvolved || [])[0]?.displayName || '',
-        eCasa: (d.team?.id || '') === (casa.id || ''),
-      }))
-      .filter(e => e.tipo !== null);
-
-    // Fonte 2: scoringPlays
-    const scoringPlays = corpo.scoringPlays || [];
-    const goalsFromScoring = scoringPlays.map(sp => ({
-      tipo: tipoEvento(sp.type?.text || sp.type?.name || String(sp.type || '')),
-      minuto: sp.clock?.displayValue || '',
-      jogador: (sp.participants || [])[0]?.athlete?.displayName ||
-               (sp.athletes || [])[0]?.displayName ||
-               sp.athlete?.displayName || sp.text || '',
-      eCasa: (sp.team?.id || '') === (casa.id || ''),
-    })).filter(e => e.tipo !== null);
-
-    // Fonte 3: plays (lista completa de eventos, se disponível)
-    const playsData = corpo.plays || [];
-    const goalsFromPlays = playsData
-      .map(p => {
-        const tipo = tipoEvento(p.type?.text || p.type?.name || String(p.type || ''));
+      .map(d => {
+        const tipo = tipoEvento(d.type?.text || d.type?.name || String(d.type || ''));
         if (!tipo) return null;
+        const athletes = d.athletesInvolved || [];
         return {
           tipo,
-          minuto: p.clock?.displayValue || '',
-          jogador: (p.participants || [])[0]?.athlete?.displayName ||
-                   p.athlete?.displayName || p.text || '',
-          eCasa: (p.team?.id || '') === (casa.id || ''),
+          minuto: d.clock?.displayValue || '',
+          jogador: athletes[0]?.displayName || '',
+          jogadorSub: tipo === 'sub' ? (athletes[1]?.displayName || '') : undefined,
+          eCasa: (d.team?.id || '') === (casa.id || ''),
         };
       })
       .filter(Boolean);
 
+    // Fonte 2: scoringPlays
+    const scoringPlays = corpo.scoringPlays || [];
+    const goalsFromScoring = scoringPlays.map(sp => {
+      const tipo = tipoEvento(sp.type?.text || sp.type?.name || String(sp.type || ''));
+      if (!tipo) return null;
+      return {
+        tipo,
+        minuto: sp.clock?.displayValue || '',
+        jogador: (sp.participants || [])[0]?.athlete?.displayName ||
+                 (sp.athletes || [])[0]?.displayName ||
+                 sp.athlete?.displayName || sp.text || '',
+        eCasa: (sp.team?.id || '') === (casa.id || ''),
+      };
+    }).filter(Boolean);
+
+    // Fonte 3: plays gerais
+    const playsData = corpo.plays || [];
+    const goalsFromPlays = playsData.map(p => {
+      const tipo = tipoEvento(p.type?.text || p.type?.name || String(p.type || ''));
+      if (!tipo) return null;
+      return {
+        tipo,
+        minuto: p.clock?.displayValue || '',
+        jogador: (p.participants || [])[0]?.athlete?.displayName || p.athlete?.displayName || p.text || '',
+        eCasa: (p.team?.id || '') === (casa.id || ''),
+      };
+    }).filter(Boolean);
+
     // Prioridade: detailEvents > goalsFromScoring > goalsFromPlays
     let eventos = [];
     if (detailEvents.length > 0) {
-      // Tenta complementar nomes vazios via scoringPlays
       eventos = detailEvents.map(ev => {
         if ((ev.tipo === 'gol' || ev.tipo === 'pen' || ev.tipo === 'contra') && !ev.jogador) {
           const match = goalsFromScoring.find(g => g.minuto === ev.minuto && g.eCasa === ev.eCasa);
@@ -91,8 +98,8 @@ export default async function handler(req, res) {
         )
       : {};
 
-    // Escalação: tenta via rosters (estrutura ESPN para futebol)
-    const POS_ORDEM = { GK:0, CB:1, LB:2, RB:3, LWB:4, RWB:5, SW:5, CDM:6, DM:6, CM:7, CAM:8, AM:8, LM:8, RM:8, LW:9, RW:9, CF:10, SS:10, ST:11, FW:11 };
+    // Escalação
+    const POS_ORDEM = { GK:0, G:0, CB:1, LB:2, RB:3, LWB:4, RWB:5, SW:5, CDM:6, DM:6, CM:7, CAM:8, AM:8, LM:8, RM:8, LW:9, RW:9, CF:10, SS:10, ST:11, FW:11, F:11 };
     const rostersData = corpo.rosters || [];
     const casaRosterRaw = rostersData.find(r => r.team?.id === casa.id);
     const foraRosterRaw = rostersData.find(r => r.team?.id !== (casa.id || 'x'));
@@ -106,17 +113,16 @@ export default async function handler(req, res) {
           nome: a.athlete?.displayName || a.displayName || '',
           posicao: a.position?.abbreviation || '',
           numero: a.jersey || '',
+          athleteId: a.athlete?.id || a.id || '',
         }));
     };
 
-    // Fallback: boxscore.players
     const playersBox = corpo.boxscore?.players || [];
     const casaPlayers = playersBox.find(t => t.team?.id === casa.id) || playersBox[0];
     const foraPlayers = playersBox.find(t => t.team?.id !== (casa.id || 'x')) || playersBox[1];
 
     const extrairDeBoxscore = (box) => {
       if (!box) return [];
-      // Tenta todas as categorias de statistics, não só a primeira
       for (const stat of (box.statistics || [])) {
         const titulares = (stat.athletes || []).filter(a => a.starter);
         if (titulares.length > 0) {
@@ -126,6 +132,7 @@ export default async function handler(req, res) {
               nome: a.athlete?.displayName || '',
               posicao: a.athlete?.position?.abbreviation || '',
               numero: a.athlete?.jersey || '',
+              athleteId: a.athlete?.id || '',
             }));
         }
       }
