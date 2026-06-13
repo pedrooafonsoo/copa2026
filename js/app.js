@@ -216,7 +216,7 @@ function linhaJogo(j, opcoes = {}) {
   const numero = j.num && j.fase !== 'grupos' ? `Jogo ${j.num} · ` : '';
 
   const espnId = r?.espnId || vivo?.espnId || null;
-  const clicavel = !!(espnId && (emAndamento || encerrado));
+  const clicavel = !!espnId;
 
   // Minutagem: "23'", "45'+2'", "intervalo", etc.
   const statusVivo = emAndamento
@@ -240,14 +240,14 @@ function linhaJogo(j, opcoes = {}) {
 
   // Ticker inline atualizado para incluir substituições
   const renderTickEv = (ev) => {
-    const icoCls = (ev.tipo === 'gol' || ev.tipo === 'pen' || ev.tipo === 'contra') ? 'ev-gol'
-      : ev.tipo === 'amarelo' ? 'ev-amarelo' : ev.tipo === 'vermelho' ? 'ev-vermelho' : 'ev-sub-ico';
+    const isGol = ev.tipo === 'gol' || ev.tipo === 'pen' || ev.tipo === 'contra';
+    const icoCls = isGol ? 'ev-gol' : ev.tipo === 'amarelo' ? 'ev-amarelo' : ev.tipo === 'vermelho' ? 'ev-vermelho' : 'ev-sub-ico';
     const subLabel = ev.tipo === 'pen' ? ' <span class="ev-sub">pên.</span>'
-      : ev.tipo === 'contra' ? ' <span class="ev-sub">c.g.</span>'
+      : ev.tipo === 'contra' ? ' <span class="ev-sub">Gol contra</span>'
       : ev.tipo === 'sub' ? ` <span class="ev-sub">↑ ${ev.jogadorSub || '?'}</span>` : '';
     return `<div class="tick-ev ${ev.eCasa ? 'tick-casa' : 'tick-fora'}">
       <span class="tick-min">${ev.minuto}</span>
-      <span class="ev-ico ${icoCls}"></span>
+      <span class="ev-ico ${icoCls}">${isGol ? '⚽' : ''}</span>
       <span class="tick-nome">${ev.jogador}${subLabel}</span>
     </div>`;
   };
@@ -287,7 +287,7 @@ function _broadcastBrasilInner() {
   const evHTML = eventos.slice().reverse().map(ev => {
     const ehBrasil = isCasaBR ? ev.eCasa : !ev.eCasa;
     const ico = ICO_BC[ev.tipo] || '';
-    const sub = ev.tipo === 'pen' ? ' <em>(pên.)</em>' : ev.tipo === 'contra' ? ' <em>(c.g.)</em>' : '';
+    const sub = ev.tipo === 'pen' ? ' <em>(pên.)</em>' : ev.tipo === 'contra' ? ' <em>(Gol contra)</em>' : '';
     const desc = ev.tipo === 'sub'
       ? `${ev.jogador || '—'} <span class="bc-sai">saiu</span> · <span class="bc-entra">↑ ${ev.jogadorSub || '?'}</span>`
       : `${ev.jogador || '—'}${sub}`;
@@ -581,9 +581,9 @@ function renderDetalhe(d, t1, t2, el) {
     return;
   }
   const ICO = {
-    gol:      `<span class="ev-ico ev-gol"></span>`,
-    pen:      `<span class="ev-ico ev-gol"></span><span class="ev-sub">pên.</span>`,
-    contra:   `<span class="ev-ico ev-gol"></span><span class="ev-sub">c.g.</span>`,
+    gol:      `<span class="ev-ico ev-gol">⚽</span>`,
+    pen:      `<span class="ev-ico ev-gol">⚽</span><span class="ev-sub">pên.</span>`,
+    contra:   `<span class="ev-ico ev-gol">⚽</span><span class="ev-sub">Gol contra</span>`,
     amarelo:  `<span class="ev-ico ev-amarelo"></span>`,
     vermelho: `<span class="ev-ico ev-vermelho"></span>`,
     sub:      `<span class="ev-ico ev-sub-ico">↔</span>`,
@@ -725,12 +725,13 @@ $$('.nav-botao').forEach(b => b.addEventListener('click', () => {
 
 /* ---------- aviso de instalação no iPhone ---------- */
 (function avisoInstalar() {
+  const aviso = $('#avisoInstalar');
+  const btn = $('#fecharAviso');
+  if (!aviso || !btn) return;
   const ehIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const instalado = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-  if (ehIOS && !instalado && !cofre.ler('copa.avisoOk')) $('#avisoInstalar').hidden = false;
-  $('#fecharAviso').addEventListener('click', () => {
-    $('#avisoInstalar').hidden = true; cofre.gravar('copa.avisoOk', true);
-  });
+  if (ehIOS && !instalado && !cofre.ler('copa.avisoOk')) aviso.hidden = false;
+  btn.addEventListener('click', () => { aviso.hidden = true; cofre.gravar('copa.avisoOk', true); });
 })();
 
 /* ---------- início ---------- */
