@@ -1,5 +1,6 @@
-// /api/detalhe — eventos (gols, cartões, substituições), estatísticas e escalação via ESPN.
-// Uso: /api/detalhe?id=ID_ESPN  (o ID chega via /api/placar)
+// /api/detalhe — eventos, estatísticas e escalação via ESPN.
+// Na Copa 2026, a ESPN retorna eventos por JOGADOR dentro de corpo.rosters.
+// Uso: /api/detalhe?id=ID_ESPN
 
 export default async function handler(req, res) {
   try {
@@ -11,140 +12,111 @@ export default async function handler(req, res) {
     if (!r.ok) throw new Error(`ESPN ${r.status}`);
     const corpo = await r.json();
 
-    const comp = (corpo.header?.competitions || [])[0] || {};
-    const lados = comp.competitors || [];
-    const casa = lados.find(l => l.homeAway === 'home') || lados[0] || {};
+    // Identificação do time da casa via rosters
+    const rostersData = corpo.rosters || [];
+    const casaRosterObj = rostersData.find(r => r.homeAway === 'home') || rostersData[0];
+    const foraRosterObj = rostersData.find(r => r.homeAway === 'away') || rostersData[1];
+    const casaId = casaRosterObj?.team?.id || '';
 
     const tipoEvento = (text) => {
       const t = (text || '').toLowerCase();
-      if (t.includes('substitut') || t === 'sub') return 'sub';
-      if (t.includes('penalty') || t.includes('pen.')) return 'pen';
-      if (t.includes('own goal') || t.includes('own-goal')) return 'contra';
-      if (t.includes('goal') || t.includes('score') || t === 'gol') return 'gol';
+      if (t.includes('substitut')) return 'sub';
+      if (t.includes('penalty kick') || t.includes('penalty goal') || t === 'penalty') return 'pen';
+      if (t.includes('own goal')) return 'contra';
+      if (t.includes('goal') || t.includes('score')) return 'gol';
       if (t.includes('second yellow') || (t.includes('red') && t.includes('yellow'))) return 'vermelho';
-      if (t.includes('red card') || t === 'red') return 'vermelho';
-      if (t.includes('yellow') || t === 'yellow') return 'amarelo';
+      if (t.includes('red card')) return 'vermelho';
+      if (t.includes('yellow card') || t === 'yellow') return 'amarelo';
       return null;
     };
 
-    // Fonte 1: details no header (gols + cartões + substituições)
-    const detailEvents = (comp.details || [])
-      .map(d => {
-        const tipo = tipoEvento(d.type?.text || d.type?.name || String(d.type || ''));
-        if (!tipo) return null;
-        const athletes = d.athletesInvolved || [];
-        return {
-          tipo,
-          minuto: d.clock?.displayValue || '',
-          jogador: athletes[0]?.displayName || '',
-          jogadorSub: tipo === 'sub' ? (athletes[1]?.displayName || '') : undefined,
-          eCasa: (d.team?.id || '') === (casa.id || ''),
-        };
-      })
-      .filter(Boolean);
+    const parseMins = (s) => {
+      const m1 = String(s || '').match(/(\d+)\+(\d+)/);
+      if (m1) return parseInt(m1[1]) + parseInt(m1[2]);
+      const m2 = String(s || '').match(/(\d+)/);
+      if (m2) return parseInt(m2[1]);
+      return 999;
+    };
 
-    // Fonte 2: scoringPlays
-    const scoringPlays = corpo.scoringPlays || [];
-    const goalsFromScoring = scoringPlays.map(sp => {
-      const tipo = tipoEvento(sp.type?.text || sp.type?.name || String(sp.type || ''));
-      if (!tipo) return null;
-      return {
-        tipo,
-        minuto: sp.clock?.displayValue || '',
-        jogador: (sp.participants || [])[0]?.athlete?.displayName ||
-                 (sp.athletes || [])[0]?.displayName ||
-                 sp.athlete?.displayName || sp.text || '',
-        eCasa: (sp.team?.id || '') === (casa.id || ''),
-      };
-    }).filter(Boolean);
+    const POS_ORDEM = {
+      GK:0, G:0, CB:1, LB:2, RB:3, LWB:4, RWB:5, SW:5,
+      CDM:6, DM:6, CM:7, CAM:8, AM:8, LM:8, RM:8, LW:9, RW:9,
+      CF:10, SS:10, ST:11, FW:11, F:11,
+    };
 
-    // Fonte 3: plays gerais
-    const playsData = corpo.plays || [];
-    const goalsFromPlays = playsData.map(p => {
-      const tipo = tipoEvento(p.type?.text || p.type?.name || String(p.type || ''));
-      if (!tipo) return null;
-      return {
-        tipo,
-        minuto: p.clock?.displayValue || '',
-        jogador: (p.participants || [])[0]?.athlete?.displayName || p.athlete?.displayName || p.text || '',
-        eCasa: (p.team?.id || '') === (casa.id || ''),
-      };
-    }).filter(Boolean);
+    // Coleta eventos e escalação por jogador
+    const rawEvents = [];
+    const subsByKey = {};  // `${teamId}_${minuto}` -> [{nome, starter, eCasa, minuto}]
+    const escCasa = [], escFora = [];
 
-    // Prioridade: detailEvents > goalsFromScoring > goalsFromPlays
-    let eventos = [];
-    if (detailEvents.length > 0) {
-      eventos = detailEvents.map(ev => {
-        if ((ev.tipo === 'gol' || ev.tipo === 'pen' || ev.tipo === 'contra') && !ev.jogador) {
-          const match = goalsFromScoring.find(g => g.minuto === ev.minuto && g.eCasa === ev.eCasa);
-          if (match?.jogador) return { ...ev, jogador: match.jogador };
+    for (const teamRoster of rostersData) {
+      const teamId = teamRoster.team?.id || '';
+      const isHome = teamId === casaId;
+      const titulares = [];
+
+      for (const player of (teamRoster.roster || [])) {
+        const nome = player.athlete?.displayName || '';
+        const athleteId = String(player.athlete?.id || '');
+        const isStarter = !!player.starter;
+        const posAbbr = player.position?.abbreviation || '';
+        const jersey = String(player.jersey || '');
+
+        if (isStarter) {
+          titulares.push({ nome, posicao: posAbbr, numero: jersey, athleteId,
+            _ord: POS_ORDEM[posAbbr] ?? 50 });
         }
-        return ev;
-      });
-    } else if (goalsFromScoring.length > 0) {
-      eventos = goalsFromScoring;
-    } else {
-      eventos = goalsFromPlays;
+
+        for (const play of (player.plays || [])) {
+          const tipo = tipoEvento(play.type?.text || play.type?.name || '');
+          if (!tipo) continue;
+          const minuto = play.clock?.displayValue || '';
+
+          if (tipo === 'sub') {
+            const key = `${teamId}_${minuto}`;
+            if (!subsByKey[key]) subsByKey[key] = [];
+            subsByKey[key].push({ nome, isStarter, isHome, minuto });
+          } else {
+            rawEvents.push({ tipo, minuto, jogador: nome, eCasa: isHome,
+              athleteId, _min: parseMins(minuto) });
+          }
+        }
+      }
+
+      titulares.sort((a, b) => a._ord - b._ord);
+      const esc = titulares.map(({ _ord, ...p }) => p);
+      if (isHome) escCasa.push(...esc);
+      else escFora.push(...esc);
     }
 
-    // Estatísticas
+    // Emparelha substituições: starter saiu, não-titular entrou
+    const subEvents = [];
+    for (const group of Object.values(subsByKey)) {
+      const saiu = group.find(p => p.isStarter);
+      const entrou = group.find(p => !p.isStarter);
+      subEvents.push({
+        tipo: 'sub',
+        minuto: (saiu || entrou || {}).minuto || '',
+        jogador: saiu?.nome || '',
+        jogadorSub: entrou?.nome || '',
+        eCasa: (saiu || entrou || {}).isHome || false,
+        _min: parseMins((saiu || entrou || {}).minuto),
+      });
+    }
+
+    const eventos = [...rawEvents, ...subEvents]
+      .sort((a, b) => a._min - b._min)
+      .map(({ _min, ...e }) => e);
+
+    // Estatísticas do boxscore
     const STATS = ['corners', 'yellowCards', 'redCards', 'shotsOnTarget', 'shots', 'possessionPct'];
     const timesBox = corpo.boxscore?.teams || [];
-    const casaBox = timesBox.find(t => t.team?.id === casa.id) || timesBox[0];
-    const foraBox = timesBox.find(t => t.team?.id !== (casa.id || 'x')) || timesBox[1];
+    const casaBox = timesBox.find(t => t.team?.id === casaId) || timesBox[0];
+    const foraBox = timesBox.find(t => t.team?.id !== (casaId || 'x')) || timesBox[1];
     const extrairStats = (t) => t
       ? Object.fromEntries(
           (t.statistics || []).filter(s => STATS.includes(s.name)).map(s => [s.name, s.displayValue])
         )
       : {};
-
-    // Escalação
-    const POS_ORDEM = { GK:0, G:0, CB:1, LB:2, RB:3, LWB:4, RWB:5, SW:5, CDM:6, DM:6, CM:7, CAM:8, AM:8, LM:8, RM:8, LW:9, RW:9, CF:10, SS:10, ST:11, FW:11, F:11 };
-    const rostersData = corpo.rosters || [];
-    const casaRosterRaw = rostersData.find(r => r.team?.id === casa.id);
-    const foraRosterRaw = rostersData.find(r => r.team?.id !== (casa.id || 'x'));
-
-    const extrairDeRoster = (rosterObj) => {
-      if (!rosterObj) return [];
-      return (rosterObj.roster || [])
-        .filter(a => a.starter)
-        .sort((a, b) => (POS_ORDEM[a.position?.abbreviation] ?? 50) - (POS_ORDEM[b.position?.abbreviation] ?? 50))
-        .map(a => ({
-          nome: a.athlete?.displayName || a.displayName || '',
-          posicao: a.position?.abbreviation || '',
-          numero: a.jersey || '',
-          athleteId: a.athlete?.id || a.id || '',
-        }));
-    };
-
-    const playersBox = corpo.boxscore?.players || [];
-    const casaPlayers = playersBox.find(t => t.team?.id === casa.id) || playersBox[0];
-    const foraPlayers = playersBox.find(t => t.team?.id !== (casa.id || 'x')) || playersBox[1];
-
-    const extrairDeBoxscore = (box) => {
-      if (!box) return [];
-      for (const stat of (box.statistics || [])) {
-        const titulares = (stat.athletes || []).filter(a => a.starter);
-        if (titulares.length > 0) {
-          return titulares
-            .sort((a, b) => (POS_ORDEM[a.athlete?.position?.abbreviation] ?? 50) - (POS_ORDEM[b.athlete?.position?.abbreviation] ?? 50))
-            .map(a => ({
-              nome: a.athlete?.displayName || '',
-              posicao: a.athlete?.position?.abbreviation || '',
-              numero: a.athlete?.jersey || '',
-              athleteId: a.athlete?.id || '',
-            }));
-        }
-      }
-      return [];
-    };
-
-    const escCasa = extrairDeRoster(casaRosterRaw).length > 0
-      ? extrairDeRoster(casaRosterRaw)
-      : extrairDeBoxscore(casaPlayers);
-    const escFora = extrairDeRoster(foraRosterRaw).length > 0
-      ? extrairDeRoster(foraRosterRaw)
-      : extrairDeBoxscore(foraPlayers);
 
     res.setHeader('Cache-Control', 's-maxage=45, stale-while-revalidate=120');
     return res.status(200).json({
@@ -154,9 +126,12 @@ export default async function handler(req, res) {
       statsFora: extrairStats(foraBox),
       escCasa,
       escFora,
-      casaId: casa.id || '',
+      casaId,
     });
   } catch (e) {
-    return res.status(200).json({ ok: false, erro: String(e?.message || e), eventos: [], statsCasa: {}, statsFora: {}, escCasa: [], escFora: [] });
+    return res.status(200).json({
+      ok: false, erro: String(e?.message || e),
+      eventos: [], statsCasa: {}, statsFora: {}, escCasa: [], escFora: [],
+    });
   }
 }

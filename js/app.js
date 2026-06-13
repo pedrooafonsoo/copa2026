@@ -268,6 +268,9 @@ function cartao(titulo, conteudo, extra = '') {
 
 /* ---------- Broadcast ao vivo do Brasil ---------- */
 function broadcastBrasil() {
+  try { return _broadcastBrasilInner(); } catch(e) { console.error('broadcast:', e); return ''; }
+}
+function _broadcastBrasilInner() {
   const jogoBR = aoVivoHoje.find(j =>
     /brasil/.test(norm(j.t1 + j.t2)) && j.espnId && (j.estado === 'in' || j.estado === 'post'));
   if (!jogoBR) return '';
@@ -314,6 +317,12 @@ function broadcastBrasil() {
 /* ---------- TELA: HOJE ---------- */
 function renderHoje() {
   const tela = $('#tela-hoje');
+  try { _renderHojeInner(tela); } catch(e) {
+    console.error('renderHoje:', e);
+    tela.innerHTML = `<p class="nota" style="padding:20px">Carregando dados da Copa… <br><small>${e.message || ''}</small></p>`;
+  }
+}
+function _renderHojeInner(tela) {
   const agora = agoraBRT();
   const h = agora.getUTCHours();
   const periodo = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
@@ -371,8 +380,8 @@ function renderHoje() {
       <div class="secao-titulo">Resultados de ontem</div>
       ${cartao('', jogosOntem.map(j => linhaJogo(j)).join(''))}` : ''}
     ${apiDisponivel === false ? `<p class="nota">Os placares ao vivo estão indisponíveis agora —
-      mas a tabela completa continua aqui, sempre. Puxe para atualizar mais tarde.</p>` :
-      `<p class="nota">Os placares se atualizam sozinhos a cada minuto. Horários sempre no fuso de Brasília.</p>`}
+      mas a tabela completa continua aqui. Deslize para atualizar mais tarde.</p>` :
+      `<p class="nota">Placares e eventos atualizam automaticamente a cada 30 segundos.</p>`}
   `;
   iniciarContagem();
   iniciarDetalhes(tela);
