@@ -728,14 +728,14 @@ $$('.nav-botao').forEach(b => b.addEventListener('click', () => {
 (function avisoInstalar() {
   const aviso = $('#avisoInstalar');
   const btn = $('#fecharAviso');
-  const texto = $('#avisoTexto');
-  if (!aviso || !btn || !texto) return;
+  if (!aviso || !btn) return;
   const ehIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const ehAndroid = /android/i.test(navigator.userAgent);
   const instalado = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   if (!instalado && !cofre.ler('copa.avisoOk') && (ehIOS || ehAndroid)) {
-    texto.innerHTML = ehIOS
-      ? 'Quer me ter na tua tela inicial? No <strong>Safari</strong>, toca em <strong>Compartilhar</strong> e depois em <strong>"Adicionar à Tela de Início"</strong>.'
+    const textoEl = $('#avisoTexto') || aviso.querySelector('p');
+    if (textoEl) textoEl.innerHTML = ehIOS
+      ? 'Quer me ter na tua tela inicial? No <strong>Safari</strong>, toca em <strong>Compartilhar ↑</strong> e depois em <strong>"Adicionar à Tela de Início"</strong>.'
       : 'Quer me ter na tua tela inicial? No <strong>Chrome</strong>, toca nos <strong>três pontinhos ⋮</strong> e depois em <strong>"Adicionar à tela inicial"</strong>.';
     aviso.hidden = false;
   }
