@@ -670,7 +670,7 @@ async function abrirPerfil(athleteId, nome) {
   const overlay = $('#perfilOverlay');
   const conteudo = $('#perfilConteudo');
   if (!overlay || !conteudo) return;
-  overlay.classList.add('ativo');
+  overlay.style.display = 'flex';
   conteudo.innerHTML = `<div class="perfil-loading">Carregando ${nome}…</div>`;
 
   let d = perfilCache[athleteId];
@@ -706,8 +706,9 @@ async function abrirPerfil(athleteId, nome) {
   const overlay = $('#perfilOverlay');
   const fechar = $('#fecharPerfil');
   if (!overlay || !fechar) return;
-  fechar.addEventListener('click', () => { overlay.classList.remove('ativo'); });
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('ativo'); });
+  overlay.style.display = 'none'; // força esconder independente do CSS cacheado
+  fechar.addEventListener('click', () => { overlay.style.display = 'none'; });
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.style.display = 'none'; });
 })();
 
 /* ---------- navegação ---------- */
