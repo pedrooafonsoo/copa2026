@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>A Copa da Milena — Copa do Mundo 2026</title>
+  <meta name="description" content="Guia pessoal da Milena para a Copa do Mundo 2026: todos os jogos, placares ao vivo e o caminho do hexa.">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0A2E22">
+  <link rel="icon" href="icons/icone-192.png">
+
+  <!-- iPhone: instalar na Tela de Início -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Copa Milena">
+  <link rel="apple-touch-icon" href="icons/icone-180.png">
+
+  <!-- Tipografia de placar -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+
+  <header class="topo">
+    <div class="topo-marca">
+      <span class="topo-eyebrow">Copa do Mundo FIFA 2026</span>
+      <h1 class="topo-titulo">A Copa da <em>Milena</em></h1>
+    </div>
+    <div class="topo-status" id="statusConexao" hidden>
+      <span class="ponto"></span><span id="statusTexto">ao vivo</span>
+    </div>
+  </header>
+
+  <div class="aviso-instalar" id="avisoInstalar" hidden>
+    <p>Quer me deixar na sua tela de início? No Safari, toque em
+      <strong>Compartilhar</strong> e depois em <strong>“Adicionar à Tela de Início”</strong>.</p>
+    <button id="fecharAviso" aria-label="Fechar aviso">OK!</button>
+  </div>
+
+  <main id="conteudo">
+    <section id="tela-hoje" class="tela" data-tela="hoje"></section>
+    <section id="tela-jogos" class="tela" data-tela="jogos" hidden></section>
+    <section id="tela-brasil" class="tela" data-tela="brasil" hidden></section>
+    <section id="tela-copa" class="tela" data-tela="copa" hidden></section>
+  </main>
+
+  <nav class="navegacao" aria-label="Seções do app">
+    <button class="nav-botao ativo" data-alvo="hoje">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3.2 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Hoje</span>
+    </button>
+    <button class="nav-botao" data-alvo="jogos">
+      <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 10h16M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Jogos</span>
+    </button>
+    <button class="nav-botao" data-alvo="brasil">
+      <svg viewBox="0 0 24 24"><path d="M12 3l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 15.4 7.2 17.9l.9-5.4-3.9-3.8 5.4-.8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      <span>Brasil</span>
+    </button>
+    <button class="nav-botao" data-alvo="copa">
+      <svg viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 1 1-8 0zM8 5H5a3 3 0 0 0 3 4M16 5h3a3 3 0 0 1-3 4M12 11v4m-3 5h6m-5-5h4l1 5H8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Copa</span>
+    </button>
+  </nav>
+
+  <script src="js/dados.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>

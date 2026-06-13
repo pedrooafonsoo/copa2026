@@ -1,0 +1,348 @@
+/* ============================================================
+   A COPA DA MILENA — estilo
+   Conceito: gramado de estádio à noite. Verde profundo como
+   fundo, texto cor de giz (as linhas do campo) e UM acento
+   amarelo, reservado para o que importa: o Brasil e o ao vivo.
+   ============================================================ */
+
+:root {
+  --campo:       #0A2E22;   /* fundo geral */
+  --superficie:  #11402F;   /* cartões */
+  --superficie-2:#175239;   /* cartões em destaque / cabeçalhos */
+  --giz:         #EDF7F0;   /* texto principal */
+  --giz-suave:   #9CC2B0;   /* texto secundário */
+  --amarelo:     #FFD23F;   /* único acento: Brasil, ao vivo, ação */
+  --amarelo-ink: #2E2300;   /* texto sobre amarelo */
+  --risco:       rgba(237, 247, 240, .14);
+  --raio: 16px;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --texto: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--texto);
+  background: var(--campo);
+  color: var(--giz);
+  min-height: 100dvh;
+  padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  background-image:
+    radial-gradient(1200px 500px at 50% -200px, rgba(255, 210, 63, .06), transparent 60%);
+}
+
+/* ---------- topo ---------- */
+.topo {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  padding: calc(14px + env(safe-area-inset-top)) 18px 10px;
+}
+.topo-eyebrow {
+  font-family: var(--display); font-weight: 600; font-size: 12px;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--giz-suave);
+}
+.topo-titulo {
+  font-family: var(--display); font-weight: 700; font-size: 30px;
+  line-height: 1; letter-spacing: .01em;
+}
+.topo-titulo em { font-style: normal; color: var(--amarelo); }
+.topo-status {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--display); font-size: 13px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--amarelo);
+  padding-bottom: 4px;
+}
+.ponto {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--amarelo);
+  animation: pulsa 1.6s ease-in-out infinite;
+}
+@keyframes pulsa { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .ponto { animation: none; } }
+
+/* ---------- aviso de instalação ---------- */
+.aviso-instalar {
+  margin: 6px 16px 0; padding: 12px 14px; border-radius: var(--raio);
+  background: var(--superficie-2); border: 1px dashed var(--risco);
+  display: flex; gap: 12px; align-items: center; font-size: 13.5px;
+  color: var(--giz); line-height: 1.45;
+}
+.aviso-instalar strong { color: var(--amarelo); font-weight: 600; }
+.aviso-instalar button {
+  flex: none; border: 0; border-radius: 10px; padding: 8px 14px;
+  background: var(--amarelo); color: var(--amarelo-ink);
+  font-family: var(--display); font-weight: 700; font-size: 14px;
+  letter-spacing: .06em; cursor: pointer;
+}
+
+/* ---------- estrutura ---------- */
+main { padding: 12px 16px 24px; max-width: 640px; margin: 0 auto; }
+.tela > * + * { margin-top: 14px; }
+
+.secao-titulo {
+  font-family: var(--display); font-weight: 700; font-size: 20px;
+  letter-spacing: .03em; text-transform: uppercase;
+  display: flex; align-items: baseline; gap: 10px;
+}
+.secao-titulo small {
+  font-size: 12px; font-weight: 600; letter-spacing: .14em;
+  color: var(--giz-suave);
+}
+.saudacao { font-size: 16px; line-height: 1.55; color: var(--giz); }
+.saudacao b { color: var(--amarelo); font-weight: 600; }
+.nota { font-size: 12.5px; color: var(--giz-suave); line-height: 1.5; }
+
+/* ---------- ASSINATURA: ingresso do próximo jogo do Brasil ---------- */
+.ingresso {
+  position: relative; overflow: hidden;
+  border-radius: var(--raio);
+  background: linear-gradient(160deg, var(--superficie-2), var(--superficie) 70%);
+  border: 1px solid var(--risco);
+  padding: 18px 18px 16px;
+}
+.ingresso::before {            /* círculo central do gramado, em giz */
+  content: ""; position: absolute; inset: auto -90px -150px auto;
+  width: 280px; height: 280px; border-radius: 50%;
+  border: 2px solid rgba(237, 247, 240, .10);
+}
+.ingresso::after {             /* linha do meio de campo */
+  content: ""; position: absolute; top: 0; bottom: 0; right: 50px;
+  width: 2px; background: rgba(237, 247, 240, .07);
+}
+.ingresso-eyebrow {
+  font-family: var(--display); font-size: 12px; font-weight: 600;
+  letter-spacing: .2em; text-transform: uppercase; color: var(--amarelo);
+}
+.ingresso-jogo {
+  font-family: var(--display); font-weight: 700; font-size: 34px;
+  line-height: 1.05; margin-top: 6px; letter-spacing: .01em;
+}
+.ingresso-jogo .vs { color: var(--giz-suave); font-size: 22px; padding: 0 4px; }
+.ingresso-meta { margin-top: 6px; font-size: 13.5px; color: var(--giz-suave); line-height: 1.5; }
+.contagem { display: flex; gap: 10px; margin-top: 14px; }
+.contagem div {
+  flex: 1; text-align: center; background: rgba(10, 46, 34, .55);
+  border: 1px solid var(--risco); border-radius: 12px; padding: 8px 4px 6px;
+}
+.contagem b {
+  display: block; font-family: var(--display); font-weight: 700;
+  font-size: 30px; line-height: 1; color: var(--amarelo);
+  font-variant-numeric: tabular-nums;
+}
+.contagem span {
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--giz-suave);
+}
+
+/* ---------- cartões e listas de jogos ---------- */
+.cartao {
+  background: var(--superficie); border: 1px solid var(--risco);
+  border-radius: var(--raio); overflow: hidden;
+}
+.cartao-cabecalho {
+  padding: 10px 14px; font-family: var(--display); font-weight: 600;
+  font-size: 14px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--giz-suave); border-bottom: 1px solid var(--risco);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.jogo {
+  display: grid; grid-template-columns: 52px 1fr auto; gap: 10px;
+  align-items: center; padding: 11px 14px;
+  border-bottom: 1px solid var(--risco);
+}
+.jogo:last-child { border-bottom: 0; }
+.jogo-hora {
+  font-family: var(--display); font-weight: 600; font-size: 16px;
+  color: var(--giz-suave); font-variant-numeric: tabular-nums;
+}
+.jogo-hora .vivo {
+  display: block; font-size: 10.5px; letter-spacing: .1em; color: var(--amarelo);
+  text-transform: uppercase;
+}
+.jogo-times { min-width: 0; }
+.jogo-linha {
+  display: flex; justify-content: space-between; gap: 8px;
+  font-size: 14.5px; line-height: 1.45;
+}
+.jogo-linha .gols {
+  font-family: var(--display); font-weight: 700; font-size: 17px;
+  font-variant-numeric: tabular-nums; min-width: 16px; text-align: right;
+}
+.jogo-local { font-size: 11.5px; color: var(--giz-suave); margin-top: 3px; }
+.jogo-fase {
+  font-family: var(--display); font-size: 12px; font-weight: 600;
+  letter-spacing: .08em; color: var(--giz-suave); text-transform: uppercase;
+  text-align: right;
+}
+.jogo.do-brasil {
+  background: linear-gradient(90deg, rgba(255, 210, 63, .16), rgba(255, 210, 63, .04));
+  border-left: 3px solid var(--amarelo);
+}
+.jogo.do-brasil .jogo-hora, .jogo.do-brasil .jogo-fase { color: var(--amarelo); }
+.jogo.encerrado .jogo-linha { color: var(--giz); }
+.jogo .vencedor { font-weight: 700; }
+
+/* ---------- filtros ---------- */
+.filtros { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; -webkit-overflow-scrolling: touch; }
+.filtros::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none; border: 1px solid var(--risco); background: var(--superficie);
+  color: var(--giz); border-radius: 999px; padding: 8px 14px;
+  font-family: var(--display); font-weight: 600; font-size: 14px;
+  letter-spacing: .05em; cursor: pointer;
+}
+.chip.ativo { background: var(--amarelo); color: var(--amarelo-ink); border-color: var(--amarelo); }
+
+.dia-titulo {
+  font-family: var(--display); font-weight: 700; font-size: 16px;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--giz);
+  margin: 18px 2px 8px; display: flex; gap: 8px; align-items: baseline;
+}
+.dia-titulo small { color: var(--giz-suave); font-size: 12px; letter-spacing: .12em; }
+
+/* ---------- tabelas (classificação, ranking, estádios) ---------- */
+.tabela { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tabela th {
+  font-family: var(--display); font-weight: 600; font-size: 11.5px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--giz-suave);
+  text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--risco);
+}
+.tabela td { padding: 8px 10px; border-bottom: 1px solid var(--risco); }
+.tabela tr:last-child td { border-bottom: 0; }
+.tabela .num { text-align: center; font-variant-numeric: tabular-nums; }
+.tabela tr.destaque td { background: rgba(255, 210, 63, .14); font-weight: 600; }
+.tabela tr.classifica td:first-child { box-shadow: inset 3px 0 0 var(--amarelo); }
+
+/* ---------- blocos de texto ---------- */
+.prosa { font-size: 14.5px; line-height: 1.65; color: var(--giz); }
+.prosa + .prosa { margin-top: 10px; }
+.prosa b { color: var(--amarelo); font-weight: 600; }
+.painel { padding: 14px; }
+.painel h3 {
+  font-family: var(--display); font-weight: 700; font-size: 17px;
+  letter-spacing: .04em; text-transform: uppercase; margin-bottom: 8px;
+}
+
+.medidor { margin-top: 10px; }
+.medidor-item { display: grid; grid-template-columns: 86px 1fr 52px; gap: 8px; align-items: center; margin-bottom: 7px; }
+.medidor-item span { font-size: 12.5px; }
+.medidor-item i {
+  height: 8px; border-radius: 99px; background: rgba(237, 247, 240, .14);
+  position: relative; overflow: hidden; font-style: normal;
+}
+.medidor-item i::after {
+  content: ""; position: absolute; inset: 0; width: var(--w, 0%);
+  background: var(--giz-suave); border-radius: 99px;
+}
+.medidor-item.brasil i::after { background: var(--amarelo); }
+.medidor-item.brasil span { color: var(--amarelo); font-weight: 600; }
+.medidor-item b { font-size: 12.5px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---------- navegação inferior ---------- */
+.navegacao {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  display: flex; justify-content: space-around;
+  background: rgba(10, 36, 27, .92);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border-top: 1px solid var(--risco);
+  padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+}
+.nav-botao {
+  flex: 1; max-width: 120px; background: none; border: 0; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  color: var(--giz-suave); padding: 4px 0;
+}
+.nav-botao svg { width: 23px; height: 23px; }
+.nav-botao span {
+  font-family: var(--display); font-weight: 600; font-size: 12px;
+  letter-spacing: .08em; text-transform: uppercase;
+}
+.nav-botao.ativo { color: var(--amarelo); }
+.nav-botao:focus-visible { outline: 2px solid var(--amarelo); border-radius: 10px; }
+
+@media (min-width: 560px) {
+  .topo, main { max-width: 640px; margin-left: auto; margin-right: auto; }
+  .topo-titulo { font-size: 36px; }
+}
+
+/* ---------- ticker ao vivo (visível sem clicar) ---------- */
+.jogo-ticker {
+  border-top: 1px solid var(--risco);
+  padding: 6px 14px 8px;
+  background: rgba(10, 46, 34, .45);
+}
+.tick-ev {
+  display: flex; align-items: center; gap: 7px;
+  padding: 4px 0; font-size: 12.5px;
+}
+.tick-ev + .tick-ev { border-top: 1px solid var(--risco); }
+.tick-min {
+  font-family: var(--display); font-weight: 600; font-size: 12px;
+  color: var(--giz-suave); min-width: 28px; text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.tick-fora { flex-direction: row-reverse; }
+.tick-fora .tick-min { text-align: left; }
+.tick-nome { flex: 1; }
+
+/* ---------- detalhes de jogo (acordeão) ---------- */
+.jogo-bloco { cursor: pointer; }
+.jogo-bloco .jogo { transition: background .15s; }
+.jogo-bloco .jogo:hover { background: rgba(255, 210, 63, .06); }
+.btn-detalhe {
+  display: block; font-size: 12px; color: var(--giz-suave);
+  text-align: right; line-height: 1; margin-top: 4px;
+}
+.jogo-detalhe {
+  border-top: 1px solid var(--risco);
+  animation: abre .18s ease;
+}
+@keyframes abre { from { opacity: 0; } }
+.detalhe-corpo { padding: 10px 14px 14px; }
+.detalhe-vazio { padding: 10px 0; }
+
+/* cabeçalho times */
+.ev-cabecalho {
+  display: flex; justify-content: space-between;
+  font-family: var(--display); font-size: 11px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--giz-suave);
+  padding-bottom: 8px; border-bottom: 1px solid var(--risco); margin-bottom: 2px;
+}
+
+/* linha de evento */
+.ev-linha {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 0; border-bottom: 1px solid var(--risco); font-size: 13px;
+}
+.ev-linha:last-of-type { border-bottom: none; }
+.ev-linha.ev-fora { flex-direction: row-reverse; }
+.ev-min {
+  font-family: var(--display); font-weight: 600; font-size: 12px;
+  color: var(--giz-suave); min-width: 28px; text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ev-fora .ev-min { text-align: left; }
+.ev-tipo { display: flex; align-items: center; gap: 4px; min-width: 16px; }
+.ev-nome { flex: 1; }
+.ev-sub { font-size: 10px; color: var(--giz-suave); }
+
+/* ícones CSS (sem emoji) */
+.ev-ico { display: inline-block; flex: none; }
+.ev-gol     { width: 12px; height: 12px; border-radius: 50%; background: var(--giz); }
+.ev-amarelo { width: 9px;  height: 13px; border-radius: 2px; background: var(--amarelo); }
+.ev-vermelho{ width: 9px;  height: 13px; border-radius: 2px; background: #E54B4B; }
+
+/* tabela de estatísticas */
+.tabela-stats {
+  width: 100%; border-collapse: collapse;
+  font-size: 12.5px; margin-top: 12px;
+  border-top: 1px solid var(--risco);
+}
+.tabela-stats td { padding: 5px 4px; }
+.st-val {
+  width: 36%; font-variant-numeric: tabular-nums; font-weight: 600;
+}
+.tabela-stats td:nth-child(1).st-val { text-align: right; }
+.tabela-stats td:nth-child(3).st-val { text-align: left; }
+.st-label {
+  width: 28%; text-align: center;
+  color: var(--giz-suave); font-size: 11px; letter-spacing: .05em;
+}
