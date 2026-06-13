@@ -316,14 +316,10 @@ function _broadcastBrasilInner() {
 
 /* ---------- TELA: HOJE ---------- */
 function renderHoje() {
-  const tela = $('#tela-hoje');
-  try { _renderHojeInner(tela); } catch(e) {
-    console.error('renderHoje:', e);
-    tela.innerHTML = `<p class="nota" style="padding:20px">Carregando dados da Copa… <br><small>${e.message || ''}</small></p>`;
-  }
-}
-function _renderHojeInner(tela) {
-  const agora = agoraBRT();
+  let tela = document.getElementById('tela-hoje');
+  if (!tela) return;
+  try {
+    const agora = agoraBRT();
   const h = agora.getUTCHours();
   const periodo = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
   const hoje = hojeISO();
@@ -385,6 +381,10 @@ function _renderHojeInner(tela) {
   `;
   iniciarContagem();
   iniciarDetalhes(tela);
+  } catch(e) {
+    console.error('renderHoje', e);
+    if (tela) tela.innerHTML = `<p class="nota" style="padding:20px">Erro ao carregar: ${e.message || ''}</p>`;
+  }
 }
 
 function fraseDoDia() {

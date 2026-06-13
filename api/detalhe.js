@@ -1,5 +1,6 @@
 // /api/detalhe — eventos, estatísticas e escalação via ESPN.
-// Na Copa 2026, a ESPN retorna eventos por JOGADOR dentro de corpo.rosters.
+// Na Copa 2026, a ESPN usa flags booleanas nas plays (scoringPlay, yellowCard, etc.)
+// e NÃO usa type.text para identificar o tipo de evento.
 // Uso: /api/detalhe?id=ID_ESPN
 
 export default async function handler(req, res) {
@@ -12,19 +13,24 @@ export default async function handler(req, res) {
     if (!r.ok) throw new Error(`ESPN ${r.status}`);
     const corpo = await r.json();
 
-    // Identificação do time da casa via rosters
     const rostersData = corpo.rosters || [];
     const casaRosterObj = rostersData.find(r => r.homeAway === 'home') || rostersData[0];
-    const foraRosterObj = rostersData.find(r => r.homeAway === 'away') || rostersData[1];
     const casaId = casaRosterObj?.team?.id || '';
 
-    const tipoEvento = (text) => {
-      const t = (text || '').toLowerCase();
+    // Classifica o tipo de evento usando flags booleanas do ESPN 2026
+    const tipoEvento = (play) => {
+      if (play.ownGoal) return 'contra';
+      if (play.scoringPlay && play.penaltyKick) return 'pen';
+      if (play.scoringPlay) return 'gol';
+      if (play.substitution) return 'sub';
+      if (play.redCard) return 'vermelho';
+      if (play.yellowCard) return 'amarelo';
+      // fallback para APIs que ainda usam type.text
+      const t = (play.type?.text || play.type?.name || '').toLowerCase();
       if (t.includes('substitut')) return 'sub';
-      if (t.includes('penalty kick') || t.includes('penalty goal') || t === 'penalty') return 'pen';
+      if (t.includes('penalty') && (t.includes('goal') || t.includes('kick'))) return 'pen';
       if (t.includes('own goal')) return 'contra';
       if (t.includes('goal') || t.includes('score')) return 'gol';
-      if (t.includes('second yellow') || (t.includes('red') && t.includes('yellow'))) return 'vermelho';
       if (t.includes('red card')) return 'vermelho';
       if (t.includes('yellow card') || t === 'yellow') return 'amarelo';
       return null;
@@ -44,15 +50,21 @@ export default async function handler(req, res) {
       CF:10, SS:10, ST:11, FW:11, F:11,
     };
 
-    // Coleta eventos e escalação por jogador
     const rawEvents = [];
-    const subsByKey = {};  // `${teamId}_${minuto}` -> [{nome, starter, eCasa, minuto}]
+    const subsByKey = {};  // `${teamId}_${minuto}` -> [{nome, isStarter, isHome, minuto}]
     const escCasa = [], escFora = [];
+
+    // Coleta substituídos/reservas para pareamento posterior
+    const subbedOutByTeam = {};  // teamId -> [{nome, isHome}]
+    const subbedInByTeam  = {};  // teamId -> [{nome, isHome}]
 
     for (const teamRoster of rostersData) {
       const teamId = teamRoster.team?.id || '';
       const isHome = teamId === casaId;
       const titulares = [];
+
+      subbedOutByTeam[teamId] = [];
+      subbedInByTeam[teamId]  = [];
 
       for (const player of (teamRoster.roster || [])) {
         const nome = player.athlete?.displayName || '';
@@ -66,8 +78,12 @@ export default async function handler(req, res) {
             _ord: POS_ORDEM[posAbbr] ?? 50 });
         }
 
+        // Registra substituídos/entrantes a nível de jogador (fallback)
+        if (player.subbedOut) subbedOutByTeam[teamId].push({ nome, isHome });
+        if (player.subbedIn)  subbedInByTeam[teamId].push({ nome, isHome });
+
         for (const play of (player.plays || [])) {
-          const tipo = tipoEvento(play.type?.text || play.type?.name || '');
+          const tipo = tipoEvento(play);
           if (!tipo) continue;
           const minuto = play.clock?.displayValue || '';
 
@@ -88,19 +104,36 @@ export default async function handler(req, res) {
       else escFora.push(...esc);
     }
 
-    // Emparelha substituições: starter saiu, não-titular entrou
+    // Emparelha substituições vindas de plays (substitution: true)
     const subEvents = [];
     for (const group of Object.values(subsByKey)) {
-      const saiu = group.find(p => p.isStarter);
+      const saiu   = group.find(p => p.isStarter);
       const entrou = group.find(p => !p.isStarter);
+      if (!saiu && !entrou) continue;
       subEvents.push({
         tipo: 'sub',
-        minuto: (saiu || entrou || {}).minuto || '',
+        minuto: (saiu || entrou).minuto || '',
         jogador: saiu?.nome || '',
         jogadorSub: entrou?.nome || '',
-        eCasa: (saiu || entrou || {}).isHome || false,
-        _min: parseMins((saiu || entrou || {}).minuto),
+        eCasa: (saiu || entrou).isHome || false,
+        _min: parseMins((saiu || entrou).minuto),
       });
+    }
+
+    // Fallback: se não vieram substituições via plays, usa flags do jogador
+    if (subEvents.length === 0) {
+      for (const teamId of Object.keys(subbedOutByTeam)) {
+        const saindo  = subbedOutByTeam[teamId];
+        const entrando = subbedInByTeam[teamId];
+        for (let i = 0; i < Math.max(saindo.length, entrando.length); i++) {
+          const saiu   = saindo[i];
+          const entrou = entrando[i];
+          subEvents.push({
+            tipo: 'sub', minuto: '', jogador: saiu?.nome || '',
+            jogadorSub: entrou?.nome || '', eCasa: (saiu || entrou)?.isHome || false, _min: 999,
+          });
+        }
+      }
     }
 
     const eventos = [...rawEvents, ...subEvents]
