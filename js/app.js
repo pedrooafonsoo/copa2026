@@ -389,6 +389,39 @@ function renderHoje() {
 
 function fraseDoDia() {
   const hoje = hojeISO();
+  const jBR = aoVivoHoje.find(j => /brasil/.test(norm(j.t1 + j.t2)));
+
+  if (jBR && jBR.estado === 'in') {
+    const isCasaBR = /brasil/.test(norm(jBR.t1));
+    const oponente = isCasaBR ? jBR.t2 : jBR.t1;
+    const gBR = isCasaBR ? (jBR.p1 ?? 0) : (jBR.p2 ?? 0);
+    const gOp = isCasaBR ? (jBR.p2 ?? 0) : (jBR.p1 ?? 0);
+    const tempo = jBR.detalhe || 'ao vivo';
+    return `🇧🇷 <b>Brasil ${gBR}×${gOp} ${oponente}</b> — tá rolando AGORA (${tempo})! Vai assistir!`;
+  }
+
+  if (jBR && jBR.estado === 'post') {
+    const isCasaBR = /brasil/.test(norm(jBR.t1));
+    const oponente = isCasaBR ? jBR.t2 : jBR.t1;
+    const gBR = isCasaBR ? (jBR.p1 ?? 0) : (jBR.p2 ?? 0);
+    const gOp = isCasaBR ? (jBR.p2 ?? 0) : (jBR.p1 ?? 0);
+    const p1 = jBR.p1 ?? '-', p2 = jBR.p2 ?? '-';
+    const det = jBR.espnId ? detalheCache[jBR.espnId] : null;
+    let goleadoresTxt = '';
+    if (det?.ok && det.eventos?.length) {
+      const gols = det.eventos.filter(ev =>
+        (ev.tipo === 'gol' || ev.tipo === 'pen') && (isCasaBR ? ev.eCasa : !ev.eCasa));
+      if (gols.length > 0) {
+        const nomes = [...new Set(gols.map(g => g.jogador))];
+        const lista = nomes.length === 1 ? nomes[0]
+          : nomes.slice(0, -1).join(', ') + ' e ' + nomes[nomes.length - 1];
+        goleadoresTxt = `, gols de ${lista}`;
+      }
+    }
+    const resultado = gBR > gOp ? 'Ganhamos' : gBR < gOp ? 'Perdemos' : 'Empatamos';
+    return `${resultado}! <b>Brasil ${p1}×${p2} ${oponente}</b>${goleadoresTxt} 🇧🇷`;
+  }
+
   const jogoBR = DADOS.jogos.find(j => j.brasil && j.data === hoje);
   if (jogoBR) return `Hoje tem <b>Brasil</b> em campo! Já separa a camisa, a bandeira e talvez um hambúrguer 👀`;
   const n = DADOS.jogos.filter(j => j.data === hoje).length;
