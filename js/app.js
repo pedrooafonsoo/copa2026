@@ -120,6 +120,7 @@ for (const j of DADOS.jogos) {
 }
 let aoVivoHoje = [];      // jogos de hoje vindos da API (inclusive em andamento)
 let apiDisponivel = null; // null = ainda não tentou; true/false depois
+let gruposAPI = {};       // classificação oficial ESPN: { A: [{selecao,p,j,v,e,d,gp,gc},...], ... }
 
 function resultadoDe(jogo) {
   const r = resultados[chaveJogo(jogo.data, jogo.t1, jogo.t2)];
@@ -129,8 +130,13 @@ function resultadoDe(jogo) {
   return { ...r, p1: r.p2, p2: r.p1, t1: jogo.t1, t2: jogo.t2 };
 }
 
-/* ---------- classificação dos grupos, calculada dos resultados ---------- */
+/* ---------- classificação dos grupos ---------- */
 function classificacao(letra) {
+  // Usa classificação oficial da ESPN se disponível (respeita fair-play tiebreaker)
+  if (gruposAPI[letra]?.length) {
+    return gruposAPI[letra].map(t => ({ ...t, selecao: traduz(t.selecao) }));
+  }
+  // Fallback: calcula dos resultados locais
   const grupo = DADOS.grupos.find(g => g.letra === letra);
   const tabela = grupo.selecoes.map(s => ({ selecao: s, p: 0, j: 0, v: 0, e: 0, d: 0, gp: 0, gc: 0 }));
   const porNome = Object.fromEntries(tabela.map(t => [norm(t.selecao), t]));
@@ -147,6 +153,17 @@ function classificacao(letra) {
   }
   return tabela.sort((x, y) => y.p - x.p || (y.gp - y.gc) - (x.gp - x.gc) || y.gp - x.gp ||
                                x.selecao.localeCompare(y.selecao));
+}
+
+async function buscarGrupos() {
+  try {
+    const r = await fetch('/api/grupos');
+    const d = await r.json();
+    if (d.ok && d.grupos && Object.keys(d.grupos).length > 0) {
+      gruposAPI = d.grupos;
+      if (telaAtiva === 'copa' || telaAtiva === 'brasil') renderTelaAtiva();
+    }
+  } catch {}
 }
 
 /* ---------- placar ao vivo ---------- */
@@ -776,7 +793,9 @@ $$('.nav-botao').forEach(b => b.addEventListener('click', () => {
 /* ---------- início ---------- */
 renderTelaAtiva();
 buscarPlacar();
+buscarGrupos();
 setInterval(() => { if (!document.hidden) buscarPlacar(); }, 30000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) buscarPlacar(); });
+setInterval(() => { if (!document.hidden) buscarGrupos(); }, 120000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { buscarPlacar(); buscarGrupos(); } });
 
 })();
