@@ -89,6 +89,9 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+      navigator.serviceWorker.addEventListener('message', (e) => {
+        if (e.data?.tipo === 'nova-versao') window.location.reload();
+      });
     }
   </script>
 </body>
