@@ -208,11 +208,19 @@ async function buscarPlacar() {
       }
     }
     cofre.gravar('copa.resultados', resultados);
-    // Busca eventos ao vivo (ticker) + Brasil encerrado (broadcast)
+    // Busca eventos ao vivo (ticker) + todos os jogos encerrados do Brasil (para fair play dos grupos)
     const vivosComId = aoVivoHoje.filter(j => j.estado === 'in' && j.espnId);
     vivosComId.forEach(j => delete detalheCache[j.espnId]);
     const brPost = aoVivoHoje.filter(j => /brasil/.test(norm(j.t1 + j.t2)) && j.espnId && j.estado === 'post' && !detalheCache[j.espnId]);
-    await Promise.all([...vivosComId, ...brPost].map(j => buscarDetalhe(j.espnId)));
+    // Inclui jogos do Brasil de dias anteriores ainda sem detalhe em cache
+    const brEncIds = Object.values(resultados)
+      .filter(r => r.fim && r.espnId && /brasil/.test(norm((r.t1 || '') + (r.t2 || ''))) && !detalheCache[r.espnId])
+      .map(r => r.espnId);
+    await Promise.all([
+      ...vivosComId.map(j => buscarDetalhe(j.espnId)),
+      ...brPost.map(j => buscarDetalhe(j.espnId)),
+      ...brEncIds.map(id => buscarDetalhe(id)),
+    ]);
   } catch {
     if (apiDisponivel === null) apiDisponivel = false;
   }
