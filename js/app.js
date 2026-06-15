@@ -40,17 +40,15 @@ const bandeira = (nome) => {
   return cod ? `<img src="https://flagcdn.com/w20/${cod}.png" class="flag-img" alt="${nome}"> ` : '';
 };
 
-const FUSO_BRT = -3 * 60; // minutos
+const FUSO_BRT_MS = -3 * 60 * 60000; // UTC-3 em milissegundos
 function agoraBRT() {
-  const d = new Date();
-  return new Date(d.getTime() + (d.getTimezoneOffset() + FUSO_BRT) * 60000);
+  return new Date(Date.now() + FUSO_BRT_MS);
 }
 function dataBRT(date) { // Date -> "AAAA-MM-DD" no fuso de Brasília
-  const d = new Date(date.getTime() + (date.getTimezoneOffset() + FUSO_BRT) * 60000);
-  return d.toISOString().slice(0, 10);
+  return new Date(date.getTime() + FUSO_BRT_MS).toISOString().slice(0, 10);
 }
 function horaBRT(date) {
-  const d = new Date(date.getTime() + (date.getTimezoneOffset() + FUSO_BRT) * 60000);
+  const d = new Date(date.getTime() + FUSO_BRT_MS);
   return String(d.getUTCHours()).padStart(2, '0') + 'h' + String(d.getUTCMinutes()).padStart(2, '0');
 }
 const hojeISO = () => dataBRT(new Date());
