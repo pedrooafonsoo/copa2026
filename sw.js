@@ -1,7 +1,7 @@
 // Service worker — deixa o app abrir mesmo sem internet.
 // Estratégia: o "casco" do app (HTML, CSS, JS, ícones) fica em cache;
 // as chamadas a /api/ vão sempre à rede (placar precisa ser fresco).
-const CACHE = 'copa-milena-v8';
+const CACHE = 'copa-milena-v9';
 const CASCO = [
   './', 'index.html', 'css/estilo.css', 'js/app.js', 'js/dados.js',
   'manifest.webmanifest', 'icons/icone-192.png', 'icons/icone-512.png', 'icons/icone-180.png',
@@ -33,7 +33,7 @@ self.addEventListener('fetch', (e) => {
           caches.open(CACHE).then((c) => c.put(e.request, copia));
         }
         return resposta;
-      }).catch(() => emCache);
+      }).catch(() => emCache || new Response('Offline', { status: 503 }));
       return emCache || daRede;
     })
   );

@@ -20,7 +20,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; background: #0A2E22; }
 body {
   font-family: var(--texto);
   background: var(--campo);
