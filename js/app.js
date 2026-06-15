@@ -120,7 +120,6 @@ for (const j of DADOS.jogos) {
 }
 let aoVivoHoje = [];      // jogos de hoje vindos da API (inclusive em andamento)
 let apiDisponivel = null; // null = ainda não tentou; true/false depois
-let gruposAPI = {};       // classificação oficial ESPN: { A: [{selecao,p,j,v,e,d,gp,gc},...], ... }
 
 function resultadoDe(jogo) {
   const r = resultados[chaveJogo(jogo.data, jogo.t1, jogo.t2)];
@@ -132,14 +131,10 @@ function resultadoDe(jogo) {
 
 /* ---------- classificação dos grupos ---------- */
 function classificacao(letra) {
-  // Usa classificação oficial da ESPN se disponível (respeita fair-play tiebreaker)
-  if (gruposAPI[letra]?.length) {
-    return gruposAPI[letra].map(t => ({ ...t, selecao: traduz(t.selecao) }));
-  }
-  // Fallback: calcula dos resultados locais
   const grupo = DADOS.grupos.find(g => g.letra === letra);
   const tabela = grupo.selecoes.map(s => ({ selecao: s, p: 0, j: 0, v: 0, e: 0, d: 0, gp: 0, gc: 0 }));
   const porNome = Object.fromEntries(tabela.map(t => [norm(t.selecao), t]));
+
   for (const j of DADOS.jogos) {
     if (j.fase !== 'grupos' || j.grupo !== letra) continue;
     const r = resultadoDe(j);
@@ -151,19 +146,36 @@ function classificacao(letra) {
     else if (r.p1 < r.p2) { b.v++; a.d++; b.p += 3; }
     else { a.e++; b.e++; a.p++; b.p++; }
   }
-  return tabela.sort((x, y) => y.p - x.p || (y.gp - y.gc) - (x.gp - x.gc) || y.gp - x.gp ||
-                               x.selecao.localeCompare(y.selecao));
-}
 
-async function buscarGrupos() {
-  try {
-    const r = await fetch('/api/grupos');
-    const d = await r.json();
-    if (d.ok && d.grupos && Object.keys(d.grupos).length > 0) {
-      gruposAPI = d.grupos;
-      if (telaAtiva === 'copa' || telaAtiva === 'brasil') renderTelaAtiva();
+  // Critério de fair play (cartões) — desempate oficial FIFA após pontos/saldo/gols
+  // Usa dados do detalheCache (disponível para jogos do Brasil e jogos ao vivo)
+  const fairPlay = (selecao) => {
+    let pts = 0;
+    for (const j of DADOS.jogos) {
+      if (j.fase !== 'grupos' || j.grupo !== letra) continue;
+      const isCasa = norm(j.t1) === norm(selecao);
+      const isFora = norm(j.t2) === norm(selecao);
+      if (!isCasa && !isFora) continue;
+      const r = resultadoDe(j);
+      if (!r?.fim || !r.espnId) continue;
+      const det = detalheCache[r.espnId];
+      if (!det?.ok) continue;
+      for (const ev of (det.eventos || [])) {
+        if (!(isCasa ? ev.eCasa : !ev.eCasa)) continue;
+        if (ev.tipo === 'amarelo') pts -= 1;
+        if (ev.tipo === 'vermelho') pts -= 3;
+      }
     }
-  } catch {}
+    return pts; // mais próximo de 0 = melhor fair play
+  };
+
+  return tabela.sort((x, y) =>
+    y.p - x.p ||
+    (y.gp - y.gc) - (x.gp - x.gc) ||
+    y.gp - x.gp ||
+    fairPlay(y.selecao) - fairPlay(x.selecao) ||
+    x.selecao.localeCompare(y.selecao)
+  );
 }
 
 /* ---------- placar ao vivo ---------- */
@@ -793,9 +805,7 @@ $$('.nav-botao').forEach(b => b.addEventListener('click', () => {
 /* ---------- início ---------- */
 renderTelaAtiva();
 buscarPlacar();
-buscarGrupos();
 setInterval(() => { if (!document.hidden) buscarPlacar(); }, 30000);
-setInterval(() => { if (!document.hidden) buscarGrupos(); }, 120000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { buscarPlacar(); buscarGrupos(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) buscarPlacar(); });
 
 })();
